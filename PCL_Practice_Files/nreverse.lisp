@@ -1,0 +1,13 @@
+(defun upto (max)
+  (let ((result nil))
+    (dotimes (i max)
+      (push i result)
+      (print result))
+    (nreverse result)))
+
+(defun upto-alt (max)
+  (let ((result nil))
+    (dotimes (i max)
+      (push i result)
+      (print result))
+    result))
