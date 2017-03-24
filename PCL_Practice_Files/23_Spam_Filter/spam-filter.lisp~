@@ -1,0 +1,70 @@
+;;;; Application:        Common Lisp Spam Filter
+;;;; Written by:         Rohan Deshpande
+;;;; Based on code by:   Peter Seibel
+;;;; Date:               March 22, 2017
+
+;;; COM.GIGAMONKEYS.SPAM defined in packages.lisp
+(in-package :com.gigamonkeys.spam)
+
+
+;;; Main function for this application
+(defun classify (text)
+  (classification (score (extract-features text))))
+
+
+(defparameter *max-ham-score* .4)       ; Maximum probability allowed for good messages
+(defparameter *min-spam-score* .6)      ; Minimum probability needed for bad messages
+
+
+;;; Function used by classify to determine what the passed message is
+(defun classification (score)
+  (cond
+    ((<= score *max-ham-score*) 'ham)
+    ((>= score *min-spam-score*) 'spam)
+    (t 'unsure)))
+
+
+;;; This class will track the spam count and ham count for a given word
+(defclass word-feature ()
+  ((word
+    :initarg :word
+    :accessor word
+    :initform (error "Must supply :word")
+    :documentation "The word this feature represents.")
+   (spam-count
+    :initarg :spam-count
+    :accessor spam-count
+    :initform 0
+    :documentation "Number of spams we have seen this feature in.")
+   (ham-count
+    :initarg :ham-count
+    :accessor ham-count
+    :initform 0
+    :documentation "Number of hams we have seen this feature in.")))
+
+
+;;; Database of features we have statistics on
+(defvar *feature-database* (make-hash-table :test #'equal))
+
+(defun clear-database ()
+  (setf *feature-database* (make-hash-table :test #'equal)))
+
+
+;;; Take a word and return the appropriate feature, creating it if necessary
+(defun intern-feature (word)
+  (or (gethash word *feature-database*)
+      (setf (gethash word *feature-database*)
+	    (make-instance 'word-feature :word word))))
+
+
+;;; Use the Common Lisp Portable Perl-Compatible Regular Expression library
+;;; to extract words as features
+(defun extract-words (text)
+  (delete-duplicates
+   (cl-ppcre:all-matches-as-strings "[a-zA-Z]{3,}" text)
+   :test #'string=))
+
+
+;;; Combine extract-words and intern-feature
+(defun extract-features (text)
+  (mapcar #'intern-feature (extract-words text)))
